@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">抖音助手</string>
+    <string name="accessibility_description">用于自动下载转发抖音视频</string>
+</resources>
