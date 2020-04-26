@@ -23,7 +23,7 @@
     </TableRow>
 
     <TextView
-        android:id="@+id/testWechat"
+        android:id="@+id/download"
         android:layout_width="match_parent"
         android:layout_height="40dp"
         android:layout_marginLeft="16dp"
@@ -33,5 +33,18 @@
         android:gravity="center"
         android:text="下载抖音无水印视频"
         android:textColor="#ffffff" />
+
+    <TextView
+        android:id="@+id/publish"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginRight="16dp"
+        android:background="#E63232"
+        android:gravity="center"
+        android:text="发布抖音视频"
+        android:textColor="#ffffff" />
+
 
 </LinearLayout>

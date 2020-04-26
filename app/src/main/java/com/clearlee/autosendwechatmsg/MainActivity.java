@@ -2,10 +2,7 @@ package com.clearlee.autosendwechatmsg;
 
 import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.view.accessibility.AccessibilityManager;
@@ -17,8 +14,8 @@ import com.clearlee.autosendwechatmsg.common.WeChatTextWrapper;
 import com.tbruyelle.rxpermissions.RxPermissions;
 
 import static android.content.Intent.FLAG_ACTIVITY_NEW_TASK;
-import static com.clearlee.autosendwechatmsg.service.AutoSendMsgService.step;
 import static com.clearlee.autosendwechatmsg.service.AutoSendMsgService.maxNum;
+import static com.clearlee.autosendwechatmsg.service.AutoSendMsgService.step_str;
 
 /**
  * Created by Clearlee
@@ -26,7 +23,7 @@ import static com.clearlee.autosendwechatmsg.service.AutoSendMsgService.maxNum;
  */
 public class MainActivity extends AppCompatActivity {
 
-    private TextView start;
+    private TextView download, publish;
     private EditText etMaxNum;
     private AccessibilityManager accessibilityManager;
     private static final int REQUEST_PERMISSION_STORAGE = 0x01;
@@ -40,28 +37,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void init() {
-        start = (TextView) findViewById(R.id.testWechat);
+        download = (TextView) findViewById(R.id.download);
+        publish = (TextView) findViewById(R.id.publish);
         etMaxNum = (EditText) findViewById(R.id.max_num);
-        start.setOnClickListener(new View.OnClickListener() {
+        download.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 checkAndStartService();
+            }
+        });
+        publish.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                checkAndStartService();
             }
         });
         checkSDCardPermission();
     }
 
 
-    /** 检查SD卡权限 */
+    /**
+     * 检查SD卡权限
+     */
     protected void checkSDCardPermission() {
         RxPermissions rxPermissions = new RxPermissions(this);
         rxPermissions
                 .request(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 .subscribe(granted -> {
                     if (granted) {
-                        start.setVisibility(View.VISIBLE);
+                        download.setVisibility(View.VISIBLE);
                     } else {
-                        start.setVisibility(View.GONE);
+                        download.setVisibility(View.GONE);
                         Toast.makeText(this, "权限被禁止，无法下载文件！", Toast.LENGTH_LONG).show();
                     }
                 });
@@ -72,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
         intent.setFlags(FLAG_ACTIVITY_NEW_TASK);
         intent.setClassName(WeChatTextWrapper.DOUYIN_PACKAGENAME, WeChatTextWrapper.DouyinClass.DOUYIN_CLASS_LAUNCHUI);
         startActivity(intent);
-        step = 0;
+        step_str = "";
         maxNum = Integer.valueOf(etMaxNum.getText().toString());
     }
 

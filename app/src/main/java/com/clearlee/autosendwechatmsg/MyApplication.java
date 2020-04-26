@@ -2,12 +2,12 @@ package com.clearlee.autosendwechatmsg;
 
 import android.app.Application;
 
-import com.lzy.okgo.OkGo;
+import com.arialyy.aria.core.Aria;
 
 public class MyApplication extends Application {
     @Override
     public void onCreate() {
-        OkGo.getInstance().init(this);
+        Aria.init(this);
         super.onCreate();
     }
 }
