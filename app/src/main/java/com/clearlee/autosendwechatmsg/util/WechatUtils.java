@@ -124,25 +124,6 @@ public class WechatUtils {
     }
 
 
-    public static boolean findViewByIdAndNext(AccessibilityService accessibilityService, String id) {
-        boolean move = false;
-        AccessibilityNodeInfo accessibilityNodeInfo = accessibilityService.getRootInActiveWindow();
-        if (accessibilityNodeInfo == null) {
-            return move;
-        }
-        List<AccessibilityNodeInfo> nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(id);
-        if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
-            for (AccessibilityNodeInfo nodeInfo : nodeInfoList) {
-                if (nodeInfo != null) {
-                    move = performMove(nodeInfo);
-                    break;
-                }
-            }
-        }
-        return move;
-    }
-
-
     public static boolean findViewByIdAndPasteContent(AccessibilityService accessibilityService, String id, String content) {
         AccessibilityNodeInfo rootNode = accessibilityService.getRootInActiveWindow();
         if (rootNode != null) {

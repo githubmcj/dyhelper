@@ -99,6 +99,16 @@ public class WeChatTextWrapper {
          */
         public static final String DOUYINID_LIKE_TEXTVIEW_ID = "com.ss.android.ugc.aweme:id/alc";
 
+        /**
+         * 发布文本编辑框id
+         */
+        public static final String DOUYINID_PUBLISH_EDITTEXT_ID = "com.ss.android.ugc.aweme:id/asu";
+
+        /**
+         * 是否保存本地视频
+         */
+        public static final String DOUYINID_PUBLISH_SAVE_VIDEO_ID = "com.ss.android.ugc.aweme:id/a2s";
+
 
     }
 

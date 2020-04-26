@@ -6,7 +6,9 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.net.Uri;
+import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
@@ -37,7 +39,9 @@ import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.D
 import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_CONTACTUI_PUBLISH_ID;
 import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_COPY_ID;
 import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_LIKE_TEXTVIEW_ID;
+import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_PUBLISH_EDITTEXT_ID;
 import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_PUBLISH_ID;
+import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_PUBLISH_SAVE_VIDEO_ID;
 import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_RECOMMEND_ID;
 import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_SHARE_ID;
 import static com.clearlee.autosendwechatmsg.util.WechatUtils.getClipboardContentTest;
@@ -58,17 +62,14 @@ public class AutoSendMsgService extends AccessibilityService {
 
     private static final String TAG = "AutoSendMsgService";
     private static final String TAG_STEP = "step";
-    private List<String> allNameList = new ArrayList<>();
-    private int mRepeatCount;
-
-    public static boolean hasSend;
-    public static final int SEND_FAIL = 0;
-    public static final int SEND_SUCCESS = 1;
-    public static int SEND_STATUS;
+    private static final String TAG_SEARCH = "step_search";
+    private String title = "";
 
     public static String step_str = "";
-    private int step_num = 0;
+    private boolean first = false;
     public static int maxNum = -1;
+    private int share_height = 0;
+
     private FileManagerUtil mFileManagerUtil = new FileManagerUtil();
     private List<DownloadEntity> mData = new ArrayList<>();
 
@@ -89,10 +90,9 @@ public class AutoSendMsgService extends AccessibilityService {
                 Log.e("---currentActivity---", currentActivity);
                 if (currentActivity.equals(WeChatTextWrapper.DouyinClass.DOUYIN_CLASS_LAUNCHUI) && step_str.equals("")) {
                     // 刚进来
-                    step_num = 0;
+                    first = true;
                     toStartClickShare();
-                }
-                else if (currentActivity.equals(WeChatTextWrapper.DouyinClass.DOUYIN_CLASS_TAKE_PHOTO)) {
+                } else if (currentActivity.equals(WeChatTextWrapper.DouyinClass.DOUYIN_CLASS_TAKE_PHOTO)) {
                     // 点击发布
                     toClickChoseVideo();
                 } else if (currentActivity.equals(WeChatTextWrapper.DouyinClass.DOUYIN_CLASS_CHOSE_VIDEO)) {
@@ -106,15 +106,33 @@ public class AutoSendMsgService extends AccessibilityService {
                     toCutVideoEditNext();
                 } else if (currentActivity.equals(WeChatTextWrapper.DouyinClass.DOUYIN_CLASS_PUBLISH)) {
                     // 发布页面
-                    toPublishVideo();
+                    if (findViewByIdAndPasteContent(DOUYINID_PUBLISH_EDITTEXT_ID, title)) {
+                        unSaveVideo();
+                    }
                 } else if (currentActivity.equals(WeChatTextWrapper.DouyinClass.DOUYIN_CLASS_PUBLISH_SUCCESS) && step_str.equals(DOUYINID_CONTACTUI_PUBLISH_ID)) {
-                    // 点击了发布，进入首页
+                    // 点击了发布后，进入首页
+                    deleteFile(new File(storagePath));
                     toStartClickRecommend();
                 }
             }
             break;
             default:
                 break;
+        }
+    }
+
+
+    //flie：要删除的文件夹的所在位置
+    private void deleteFile(File file) {
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            for (int i = 0; i < files.length; i++) {
+                File f = files[i];
+                deleteFile(f);
+            }
+            file.delete();//如要保留文件夹，只删除文件，请注释这行
+        } else if (file.exists()) {
+            file.delete();
         }
     }
 
@@ -149,8 +167,9 @@ public class AutoSendMsgService extends AccessibilityService {
     /**
      * 点击喜欢
      */
-    private void toClickLike() {
-        Log.e(TAG_STEP, "点击喜欢");
+    private boolean isLessLike() {
+        Log.e(TAG_STEP, "检查点赞数");
+        boolean isLessLike = true;
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
@@ -158,32 +177,43 @@ public class AutoSendMsgService extends AccessibilityService {
         }
         AccessibilityNodeInfo accessibilityNodeInfo = this.getRootInActiveWindow();
         if (accessibilityNodeInfo == null) {
-            return;
+            return isLessLike;
         }
         recycle(accessibilityNodeInfo);
 
         step_str = DOUYINID_LIKE_TEXTVIEW_ID;
         List<AccessibilityNodeInfo> nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(DOUYINID_LIKE_TEXTVIEW_ID);
 
-
+        Rect rect = new Rect();
         if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
-            for (AccessibilityNodeInfo nodeInfo : nodeInfoList) {
-                if (nodeInfo != null) {
-                    performClick(nodeInfo);
-                    // 执行完之后划出复制链接
+            for (int i = 0; i < nodeInfoList.size(); i++) {
+                nodeInfoList.get(i).getBoundsInScreen(rect);
+                if (rect.top == 890) {
+                    if (nodeInfoList.get(i).getText().toString().contains("w")) {
+                        double num = Double.valueOf(nodeInfoList.get(i).getText().toString().replace("w", ""));
+                        if (num > 10) {
+                            isLessLike = false;
+                        } else {
+                            isLessLike = true;
+                            Toast.makeText(AutoSendMsgService.this, "点赞数不足，不转发，直接下一个视频", Toast.LENGTH_SHORT).show();
+                        }
+                    } else {
+                        isLessLike = true;
+                        Toast.makeText(AutoSendMsgService.this, "点赞数不足，不转发，直接下一个视频", Toast.LENGTH_SHORT).show();
+                    }
                     break;
                 }
             }
         }
+        return isLessLike;
     }
-
 
 
     /**
      * 分享，延迟一秒执行
      */
     private void toStartClickShare() {
-        Log.e(TAG_STEP, "分享，延迟一秒执行");
+        Log.e(TAG_STEP, "分享，延迟执行");
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
@@ -196,52 +226,29 @@ public class AutoSendMsgService extends AccessibilityService {
      * 点击分享
      */
     private void clickShare() {
+        if (isLessLike()) {
+            moveToNext();
+            return;
+        }
         Log.e(TAG_STEP, "点击分享");
         AccessibilityNodeInfo accessibilityNodeInfo = this.getRootInActiveWindow();
         if (accessibilityNodeInfo == null) {
             return;
         }
         step_str = DOUYINID_SHARE_ID;
-//        List<AccessibilityNodeInfo> nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(DOUYINID_SHARE_ID);
-//        Log.e("nodeInfoList---size", nodeInfoList.size() + "");
-//        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-//        int yValue = displayMetrics.heightPixels;
-//        int xValue = displayMetrics.widthPixels;
-//        Rect rect = new Rect();
-//        if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
-//            for (int i = 0; i < nodeInfoList.size(); i++) {
-//                nodeInfoList.get(i).getBoundsInScreen(rect);
-//                Log.e(i + "------", rect.toString());
-//                if (rect.top > 0 && rect.top < yValue && rect.left > 0 && rect.left < xValue) {
-//                    performClick(nodeInfoList.get(i));
-//                    break;
-//                }
-//            }
-//        }
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-            int xValue = displayMetrics.widthPixels;
-            GestureDescription.Builder gestureBuilder = new GestureDescription.Builder();
-            Path path = new Path();
-            path.moveTo(xValue / 10 * 9, 1090);
-            path.lineTo(xValue / 10 * 9, 1090);
-            gestureBuilder.addStroke(new GestureDescription.StrokeDescription(path, 50, 100));
-            dispatchGesture(gestureBuilder.build(), new GestureResultCallback() {
-                @Override
-                public void onCompleted(GestureDescription gestureDescription) {
-                    moveToRight();
-                    super.onCompleted(gestureDescription);
-
+        List<AccessibilityNodeInfo> nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(DOUYINID_SHARE_ID);
+        Rect rect = new Rect();
+        if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
+            for (int i = 0; i < nodeInfoList.size(); i++) {
+                nodeInfoList.get(i).getBoundsInScreen(rect);
+                if (rect.top == 1090) {
+                    performClick(nodeInfoList.get(i));
+                    break;
                 }
-
-
-            }, null);
+            }
         }
-//        moveToRight();
+        moveToRight();
     }
-
-
 
 
     public void recycle(AccessibilityNodeInfo info) {
@@ -311,6 +318,7 @@ public class AutoSendMsgService extends AccessibilityService {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
+                    Log.e(TAG_SEARCH, getClipboardContentTest(AutoSendMsgService.this));
                     getData(getUrl(getClipboardContentTest(AutoSendMsgService.this)));
                 }
             }
@@ -566,6 +574,41 @@ public class AutoSendMsgService extends AccessibilityService {
 
     }
 
+
+    private boolean findViewByIdAndPasteContent(String id, String content) {
+        AccessibilityNodeInfo rootNode = this.getRootInActiveWindow();
+        if (rootNode != null) {
+            List<AccessibilityNodeInfo> editInfo = rootNode.findAccessibilityNodeInfosByViewId(id);
+            if (editInfo != null && !editInfo.isEmpty()) {
+                Bundle arguments = new Bundle();
+                arguments.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, content);
+                editInfo.get(0).performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments);
+                return true;
+            }
+            return false;
+        }
+        return false;
+    }
+
+    /**
+     * 不保存到本地
+     */
+    private void unSaveVideo() {
+        AccessibilityNodeInfo rootNode = this.getRootInActiveWindow();
+        if (rootNode != null) {
+            List<AccessibilityNodeInfo> list = rootNode.findAccessibilityNodeInfosByViewId(DOUYINID_PUBLISH_SAVE_VIDEO_ID);
+            if (null != list) {
+                for (AccessibilityNodeInfo nodeInfo : list) {
+                    if (nodeInfo.isChecked()) {
+                        performClick(nodeInfo);
+                    }
+                }
+            }
+        }
+        toPublishVideo();
+    }
+
+
     /**
      * 发布视频
      */
@@ -585,7 +628,7 @@ public class AutoSendMsgService extends AccessibilityService {
         if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
             for (AccessibilityNodeInfo nodeInfo : nodeInfoList) {
                 if (nodeInfo != null) {
-                    step_num++;
+                    first = false;
                     performClick(nodeInfo);
                     break;
                 }
@@ -607,7 +650,9 @@ public class AutoSendMsgService extends AccessibilityService {
 
     private String getUrl(String clipboardContentTest) {
         String url = "http" + clipboardContentTest.split("http")[1].split("复制此链接")[0];
+        title = clipboardContentTest.split("http")[0];
         Log.e(TAG, "复制内容：" + url);
+        Log.e(TAG, "标题：" + title);
         return url;
     }
 
