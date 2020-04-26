@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.net.Uri;
+import android.nfc.Tag;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -44,6 +45,7 @@ import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.D
 import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_PUBLISH_SAVE_VIDEO_ID;
 import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_RECOMMEND_ID;
 import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_SHARE_ID;
+import static com.clearlee.autosendwechatmsg.common.WeChatTextWrapper.WechatId.DOUYINID_WARN_VIDEO_ID;
 import static com.clearlee.autosendwechatmsg.util.WechatUtils.getClipboardContentTest;
 import static com.clearlee.autosendwechatmsg.util.WechatUtils.performClick;
 import static com.wya.utils.utils.FileManagerUtil.TASK_CANCEL;
@@ -191,21 +193,52 @@ public class AutoSendMsgService extends AccessibilityService {
                 if (rect.top == 890) {
                     if (nodeInfoList.get(i).getText().toString().contains("w")) {
                         double num = Double.valueOf(nodeInfoList.get(i).getText().toString().replace("w", ""));
-                        if (num > 10) {
+                        if (num > maxNum) {
                             isLessLike = false;
                         } else {
                             isLessLike = true;
-                            Toast.makeText(AutoSendMsgService.this, "点赞数不足，不转发，直接下一个视频", Toast.LENGTH_SHORT).show();
+                            Log.e(TAG, "点赞数不足，不转发，直接下一个视频");
                         }
                     } else {
                         isLessLike = true;
-                        Toast.makeText(AutoSendMsgService.this, "点赞数不足，不转发，直接下一个视频", Toast.LENGTH_SHORT).show();
+                        Log.e(TAG, "点赞数不足，不转发，直接下一个视频");
                     }
                     break;
                 }
             }
         }
         return isLessLike;
+    }
+
+    private boolean isWarnVideo() {
+        boolean isWarn = false;
+        Log.e(TAG_STEP, "警告检查");
+
+        AccessibilityNodeInfo accessibilityNodeInfo = this.getRootInActiveWindow();
+        if (accessibilityNodeInfo == null) {
+            isWarn = true;
+            return isWarn;
+        }
+        recycle(accessibilityNodeInfo);
+
+        step_str = DOUYINID_WARN_VIDEO_ID;
+        List<AccessibilityNodeInfo> nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(DOUYINID_WARN_VIDEO_ID);
+        Rect rect = new Rect();
+        if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
+            for (int i = 0; i < nodeInfoList.size(); i++) {
+                nodeInfoList.get(i).getBoundsInScreen(rect);
+                if (rect.top == 1352) {
+                    if (nodeInfoList.get(i).getText().length() > 0) {
+                        isWarn = true;
+                        Log.e(TAG, "警告视频，不转发");
+                    } else {
+                        isWarn = false;
+                    }
+                    break;
+                }
+            }
+        }
+        return isWarn;
     }
 
 
@@ -226,7 +259,7 @@ public class AutoSendMsgService extends AccessibilityService {
      * 点击分享
      */
     private void clickShare() {
-        if (isLessLike()) {
+        if (isWarnVideo() || isLessLike()) {
             moveToNext();
             return;
         }
@@ -249,6 +282,7 @@ public class AutoSendMsgService extends AccessibilityService {
         }
         moveToRight();
     }
+
 
 
     public void recycle(AccessibilityNodeInfo info) {
@@ -649,7 +683,7 @@ public class AutoSendMsgService extends AccessibilityService {
     }
 
     private String getUrl(String clipboardContentTest) {
-        String url = "http" + clipboardContentTest.split("http")[1].split("复制此链接")[0];
+        String url = "http" + clipboardContentTest.split("http")[1].split(" 复制此链接")[0];
         title = clipboardContentTest.split("http")[0];
         Log.e(TAG, "复制内容：" + url);
         Log.e(TAG, "标题：" + title);

@@ -31,7 +31,7 @@ public class RetrofitFactory {
     public RetrofitFactory() {
 
         retrofit = new Retrofit.Builder()
-                .baseUrl("http://192.168.31.130:1152/")
+                .baseUrl("https://yapi.deot.top/")
                 .client(initClient())
                 .addConverterFactory(GsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())

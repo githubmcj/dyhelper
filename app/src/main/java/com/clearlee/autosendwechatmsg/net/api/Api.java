@@ -23,7 +23,7 @@ public interface Api {
      * @param hashMap
      * @return
      */
-    @GET("parseByLink.php")
+    @GET("douyin")
     Observable<BaseResult<Data>> start(@QueryMap HashMap<String, String> hashMap);
 
 }

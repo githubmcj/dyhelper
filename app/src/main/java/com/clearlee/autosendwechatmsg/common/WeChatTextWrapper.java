@@ -109,6 +109,11 @@ public class WeChatTextWrapper {
          */
         public static final String DOUYINID_PUBLISH_SAVE_VIDEO_ID = "com.ss.android.ugc.aweme:id/a2s";
 
+         /**
+         * 警告提醒
+         */
+        public static final String DOUYINID_WARN_VIDEO_ID = "com.ss.android.ugc.aweme:id/g1d";
+
 
     }
 
